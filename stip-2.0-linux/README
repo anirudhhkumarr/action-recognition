@@ -1,0 +1,264 @@
+--- STIP implementation v2.0 --- (03-10-2010)
+http://www.irisa.fr/vista/Equipe/People/Laptev/download/stip-2.0-linux.zip
+
+Authors:
+========
+This code was developed by Ivan Laptev and Muhammad Muneeb Ullah at INRIA.
+Earlier version of the code was developed by Barbara Caputo at IDIAP.
+The code is provided as-it-is without any warranty. For questions and bug
+reports contact Ivan Laptev (ivan.laptev@inria.fr)
+
+Overview of updates:
+====================
+The following updates have been added to this release:
+
+* Regular dense sampling of local features
+    implements a regular dense sampling of feature points as described in
+    [Heng et al. BMVC'09].
+* Descriptor computation for external points
+    provides the flexibility of computing HOG/HOF descriptors for
+    pre-detected (externally provided) feature points.
+* Batch video processing
+    Multiple videos can now be processed in a batch mode. Video file
+    names are obtained from a text file, the output for all videos is written 
+    sequentially to a file or to the standard output enabling direct
+    processing of features, i.g. k-means quantization of descriptors.
+    Such "on-the-fly" processing is useful especially when extracting dense 
+    features which may take much of disk space.
+* The output format
+    Note that the output format has changed compared to the the previous version.
+    Each output line corresponds to one feature and now includes normalized 
+    feature coordinates in the range [0 1) as well as absolute feature 
+    coordinates. The order of values fro each feature is the following:
+    point-type y-norm x-norm t-norm y x t sigma2 tau2 dscr-hog(72) dscr-hof(90)
+
+General:
+========
+The code in this directory extracts Space-Time Interest Points (STIPs)
+(or densely samples feature points), and computes corresponding local 
+space-time descriptors. The implemented STIP detector resembles the
+extended space-time Harris detector described in [Laptev IJCV'05]. The code 
+does not implement scale selection but detects points for a set of multiple
+combinations of spatial and temporal scales. This simplification appears to
+produce similar (or better) results in applications (e.g. action recognition)
+while resulting in a considerable speed-up and close-to-video-rate run time.
+
+The currently implemented types of descriptors are HOG (Histograms of
+Oriented Gradients) and HOF (Histograms of Optical Flow) computed on 
+a 3D video patch in the neighborhood of each detected STIP. The patch
+is partitioned into a grid with 3x3x2 spatio-temporal blocks; 4-bin HOG
+descriptors and 5-bin HOF descriptors are then computed for all blocks
+and are concatenated into a 72-element and 90-element descriptors 
+respectively.
+
+In addition to internally computed feature points (sparse STIPs or dense),
+the code provides the flexibility to take pre-detected feature points as
+input and computes the HOG/HOF descriptors. Thus the HOG/HOF descriptors
+can be computed for any type of STIPs.
+
+Input/Output:
+=============
+The input should be a list of video file(s) supported either by Windows
+video codecs or ffmpeg library under Linux. For each video, the frame
+interval for processing can be specified. The position and descriptors of
+feature points are saved in text format. Run "./bin/stipdet --help" to
+get further details.
+
+To compute the HOG/HOF descriptors for user-defined locations in the video,
+the code will take a text file as input argument (e.g. walk-simple.txt) 
+for each video sample (e.g. walk-simple.avi), with points in the following
+format:
+
+# point-type  x  y  t  sigma2  tau2  detector-confidence
+
+where "point-type" can be any integer value, and "sigma2" and "tau2" are
+the spatial and temporal scale values respectively. The following scale
+values are expected:
+
+sigma2 = {4, 8, 16, 32, 64, 128, 256, 512}
+tau2 = {2, 4}
+
+The will code quantizes the input spatial/temporal scale values to the ones
+above in case of a mismatch. sigma2 and tau2 define the spatial and temporal
+patch sizes for the descriptor around feature locations as
+
+spatial patch size  = 2 * szf * sqrt(sigma2)
+temporal patch size = 2 * tszf * sqrt(tau2)
+
+where "szf" (default 9) and "tszf" (default 4) are the spatial and temporal 
+patch size factors respectively.
+
+Visualization
+=============
+"stipdet" will by default display detected features for each video. Visualization can be turned of
+with "-vis no" command-line argument. "stipshow" displays pre-computed features for the first video
+in the batch only.
+
+Dependencies:
+=============
+OpenCV library (http://www.intel.com/technology/computing/opencv/)
+On Linux OpenCV must be compiled with ffmpeg support, see e.g.:
+http://www.comp.leeds.ac.uk/vision/opencv/install-lin-ffmpeg.html
+
+Running:
+========
+There are two executables in ./bin directory
+./bin/stipdet     : detection and description of STIP/Dense features as well
+		    as externally provided STIPs
+./bin/stipshow    : visualization of STIP points with optional video dump
+Run "./bin/stipdet --help" and "./bin/stipshow --help" to learn about the
+format of command line I/O parameters.
+
+Example 1 (STIPs):
+==================
+>./bin/stipdet -i ./data/video-list.txt -vpath ./data/ -o ./data/walk-samples-stip.txt -det harris3d
+
+  Options summary:           
+  video input:               ./data/walk-simple.avi
+  Total frames:              113
+  frame interval:            0-100000000
+  output file:               ./data/walk-samples-stip.txt
+  #pyr.levels:               3
+  init.pyr.level:            0
+  detector:                  harris3d
+  spatial patch size fact.:  9
+  temporal patch size fact.: 4
+  descriptor type:           hoghof
+  Frame:    20 - IPs[this: 0, total:   0] - Perf: Avg FPS=10.8 
+  Frame:    40 - IPs[this: 6, total:  63] - Perf: Avg FPS=10.8 
+  Frame:    60 - IPs[this: 5, total: 110] - Perf: Avg FPS=10.8 
+  Frame:    80 - IPs[this: 1, total: 161] - Perf: Avg FPS=10.8 
+  Frame:   100 - IPs[this: 0, total: 203] - Perf: Avg FPS=10.8 
+-> Detected 242 points
+
+  Options summary:           
+  video input:               ./data/walk-complex.avi
+  Total frames:              104
+  frame interval:            0-100000000
+  output file:               ./data/walk-samples-stip.txt
+  #pyr.levels:               3
+  init.pyr.level:            0
+  detector:                  harris3d
+  spatial patch size fact.:  9
+  temporal patch size fact.: 4
+  descriptor type:           hoghof
+  Frame:    20 - IPs[this: 2, total:   2] - Perf: Avg FPS=10.8 
+  Frame:    40 - IPs[this:10, total: 158] - Perf: Avg FPS=10.7 
+  Frame:    60 - IPs[this:15, total: 373] - Perf: Avg FPS=10.6 
+  Frame:    80 - IPs[this:12, total: 605] - Perf: Avg FPS=10.5 
+  Frame:   100 - IPs[this: 1, total: 869] - Perf: Avg FPS=10.4 
+-> Detected 919 points
+
+Example 2 (Dense features):
+===========================
+>./bin/stipdet -i ./data/video-list.txt -vpath ./data/ -o ./data/walk-samples-dense.txt -det dense -vis no
+
+  Options summary:           
+  video input:               ./data/walk-simple.avi
+  Total frames:              113
+  frame interval:            0-100000000
+  output file:               ./data/walk-samples-dense.txt
+  #pyr.levels:               3
+  init.pyr.level:            0
+  detector:                  dense
+  spatial patch size fact.:  9
+  temporal patch size fact.: 4
+  descriptor type:           hoghof
+  Dense feature specification:
+  spatial overlap = 50%, temporal overlap = 50%
+  tau2 = 4 (temporal patch size: 16 frames), step size: 8 frames
+  tau2 = 2 (temporal patch size: 11 frames), step size: 6 frames
+  sigma2 =    4 (spatial patch size:   36x  36 pixels), step size: 18 pixels
+  sigma2 =    8 (spatial patch size:   51x  51 pixels), step size: 25 pixels
+  sigma2 =   16 (spatial patch size:   72x  72 pixels), step size: 36 pixels
+  sigma2 =   32 (spatial patch size:  102x 102 pixels), step size: 50 pixels
+  sigma2 =   64 (spatial patch size:  144x 144 pixels), step size: 72 pixels
+  sigma2 =  128 (spatial patch size:  204x 204 pixels), step size: 101 pixels
+  Frame:    20 - IPs[this: 0, total:  93] - Perf: Avg FPS=11.6 
+  Frame:    40 - IPs[this: 0, total: 558] - Perf: Avg FPS=11.0 
+  Frame:    60 - IPs[this: 0, total:1116] - Perf: Avg FPS=10.7 
+  Frame:    80 - IPs[this: 0, total:1674] - Perf: Avg FPS=10.6 
+  Frame:   100 - IPs[this: 0, total:2232] - Perf: Avg FPS=10.5 
+-> Densely computed 2604 points
+
+  Options summary:           
+  video input:               ./data/walk-complex.avi
+  Total frames:              104
+  frame interval:            0-100000000
+  output file:               ./data/walk-samples-dense.txt
+  #pyr.levels:               3
+  init.pyr.level:            0
+  detector:                  dense
+  spatial patch size fact.:  9
+  temporal patch size fact.: 4
+  descriptor type:           hoghof
+  Dense feature specification:
+  spatial overlap = 50%, temporal overlap = 50%
+  tau2 = 4 (temporal patch size: 16 frames), step size: 8 frames
+  tau2 = 2 (temporal patch size: 11 frames), step size: 6 frames
+  sigma2 =    4 (spatial patch size:   36x  36 pixels), step size: 18 pixels
+  sigma2 =    8 (spatial patch size:   51x  51 pixels), step size: 25 pixels
+  sigma2 =   16 (spatial patch size:   72x  72 pixels), step size: 36 pixels
+  sigma2 =   32 (spatial patch size:  102x 102 pixels), step size: 50 pixels
+  sigma2 =   64 (spatial patch size:  144x 144 pixels), step size: 72 pixels
+  sigma2 =  128 (spatial patch size:  204x 204 pixels), step size: 101 pixels
+  Frame:    20 - IPs[this: 0, total:  93] - Perf: Avg FPS=11.5 
+  Frame:    40 - IPs[this: 0, total: 558] - Perf: Avg FPS=11.0 
+  Frame:    60 - IPs[this: 0, total:1116] - Perf: Avg FPS=10.7 
+  Frame:    80 - IPs[this: 0, total:1674] - Perf: Avg FPS=10.6 
+  Frame:   100 - IPs[this: 0, total:2232] - Perf: Avg FPS=10.5 
+-> Densely computed 2325 points
+
+Example 3 (HOG/HOF for external STIPs):
+=======================================
+>./bin/stipdet -i ./data/video-list.txt -vpath ./data/ -fpath ./data/ -o ./data/walk-samples-externalstip.txt -mode 1 -vis no
+
+  Options summary:           
+  video input:               ./data/walk-simple.avi
+  Total frames:              113
+  frame interval:            0-100000000
+  input file:                ./data/walk-simple.txt
+  output file:               ./data/walk-samples-externalstip.txt
+  #pyr.levels:               3
+  init.pyr.level:            0
+  spatial patch size fact.:  9
+  temporal patch size fact.: 4
+  descriptor type:           hoghof
+  Frame:    20 - IPs[this: 0, total:   0] - Perf: Avg FPS=11.9 
+  Frame:    40 - IPs[this: 6, total:  63] - Perf: Avg FPS=11.9 
+  Frame:    60 - IPs[this: 5, total: 110] - Perf: Avg FPS=12.0 
+  Frame:    80 - IPs[this: 1, total: 161] - Perf: Avg FPS=12.0 
+  Frame:   100 - IPs[this: 0, total: 203] - Perf: Avg FPS=12.0 
+-> HOG/HOF computed for 242 points
+
+  Options summary:           
+  video input:               ./data/walk-complex.avi
+  Total frames:              104
+  frame interval:            0-100000000
+  input file:                ./data/walk-complex.txt
+  output file:               ./data/walk-samples-externalstip.txt
+  #pyr.levels:               3
+  init.pyr.level:            0
+  spatial patch size fact.:  9
+  temporal patch size fact.: 4
+  descriptor type:           hoghof
+  Frame:    20 - IPs[this: 2, total:   2] - Perf: Avg FPS=11.9 
+  Frame:    40 - IPs[this:10, total: 158] - Perf: Avg FPS=11.7 
+  Frame:    60 - IPs[this:15, total: 373] - Perf: Avg FPS=11.6 
+  Frame:    80 - IPs[this:12, total: 605] - Perf: Avg FPS=11.5 
+  Frame:   100 - IPs[this: 1, total: 869] - Perf: Avg FPS=11.4 
+-> HOG/HOF computed for 919 points
+
+Example 4 (visualization):
+==========================
+
+>./bin/stipshow -v ./data/walk-simple.avi -f ./data/walk-samples-stip.txt
+Input video:   ./data/walk-simple.avi
+Input features:./data/walk-samples-stip.txt
+load 240 features from ./data/walk-samples-stip.txt
+
+Links:
+======
+Action recognition page and related papers using STIP features:
+http://www.irisa.fr/vista/actions
+

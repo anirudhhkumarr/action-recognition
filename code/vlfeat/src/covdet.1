@@ -1,0 +1,282 @@
+.TH COVDET 1 "" "VLFeat" "VLFeat"
+.\" ------------------------------------------------------------------
+.SH NAME
+.\" ------------------------------------------------------------------
+covdet \- Covariant image frames detector
+.\" ------------------------------------------------------------------
+.SH SYNOPSIS
+.\" ------------------------------------------------------------------
+.B covdet
+.RI [ options ]
+FILE .\|.\|.
+.\" ------------------------------------------------------------------
+.SH OPTIONS
+.\" ------------------------------------------------------------------
+.TP
+.B \-v\fR,\fP \-\^\-verbose
+Increase verbosity level (may be repeated).
+.TP
+.B \-h\fR,\fP \-\^\-help
+Show options and version.
+.TP
+.BI \-\^\-output "\fR[=\fPFILESPEC\fR],\fP " \-o FILESPEC
+Enable/specify output file.
+.TP
+.BI \-\^\-frames \fR[=\fPFILESPEC\fR]\fP
+Enable/specify frames output.
+.TP
+.BI \-a\fR,\fP \-\^\-affine-adapt
+Calc rotation covariant frames.
+.TP
+.BI \-r\fR,\fP \-\^\-orientation
+Calc affine covariant frames.
+.TP
+.BI \-\^\-method "\fR[DOG|HESSIAN],\fP " \-m [DOG|HESSIAN]
+Specify the method of frame localisation ('blobness' measure).
+.TP
+.BI \-\^\-descriptors \fR[=\fPFILESPEC\fR]\fP
+Enable/specify descriptors output.
+.TP
+.BI \-\^\-gss \fR[=\fPFILESPEC\fR]\fP
+Enable/specify the Gaussian Scale Space (GSS) output. Exports each plane of the
+GSS as <input-image>_<octave-idx>_<level-idx>.pgm in binary format.
+.TP
+.BI \-\^\-meta \fR[=\fPFILESPEC\fR]\fP
+Enable/specify meta output.
+.TP
+.BI \-\^\-first-octave \fR=\fPINTEGER
+Specifiy the index of the first octave of the GSS.
+.TP
+.BI \-\^\-edge-thresh \fR=\fPREAL
+Specify the edge threshold.
+.TP
+.BI \-\^\-peak-thresh \fR=\fPREAL
+Specify the peak threshold.
+.TP
+.BI \-\^\-magnif \fR=\fPREAL
+Set the descriptor magnification factor.
+.TP
+.BI \-\^\-norm-thresh \fR=\fPREAL
+Set the minimum l2-norm of the descriptors before
+normalization. Descriptors below the threshold are set to zero.
+.TP
+.BI \-\^\-calc-inv-sm
+Export shape matrix of the ellipse frame as its inverse (Oxford format).
+.TP
+.BI \-\^\-no-descriptors
+Do not calculate descriptors.
+.TP
+.BI \-\^\-win-size \fR=\fPREAL
+Set the variance of the Gaussian window that determines the
+descriptor support. It is expressend in units of spatial
+bins. Used only for isotrpic frames (discs).
+.TP
+.BI \-\^\-aff-win-size \fR=\fPREAL
+Size of the window used for Second Moment Matrix (SMM) calculation.
+SMM is used as an estimation of the affine shape. Used only for
+anisotropic frames (ellipses).
+.TP
+.BI \-\^\-aff-max-iter \fR=\fPREAL
+Maximum number of iterations for the affine shape estimation. If the
+convergence criterion is not fulfilled in these steps, keypoint is
+rejected. Used only for anisotropic frames (ellipses).
+.TP
+.BI \-\^\-aff-conv-thr \fR=\fPREAL
+Convergence criterion for affine shape estimation. Iteration converges
+when the isotropy measure value, defined as ratio between second moment
+matrix eigen values, differs from the ideal isotropy measure by value smaller
+than this threshold.
+.TP
+.BI \-\^\-sift-patch-size \fR=\fPREAL
+Size of the patch used for SIFT descriptor calculation. Used only
+for anisotropic frames (ellipses).
+
+.\" ------------------------------------------------------------------
+.SH DESCRIPTION
+.\" ------------------------------------------------------------------
+.B covdet
+computes the
+.I Covariant image frames.
+In the simplest case,
+.B sift
+reads an image file (in PGM format), computes the oriented-disc frames using
+difference of gaussian image response (in fact frames produced by SIFT detector)
+and their descriptors and write them to a file. Alternatively,
+.B --frames
+option can be used to suppress the standard output and produce a file
+with the feature frames only.  Similarly,
+.B --descriptors
+suppresses the standard output and produce a file of descriptors only.
+.B --output
+can be used in combination with the previous too if the combined
+output of frames and descriptors is required.
+.P
+In the default settings the input image is upscaled. To suppress this run
+with parameter
+.B --first-octave=0
+.P
+The response function used for detection of distinct image regions
+can be defined using
+.B --resp-func
+parameter. The allowed values are
+.I DOG
+and
+.I HESSIAN
+computing Difference of Gaussian (SIFT response function) or determinant
+of Hessian matrix respectively.
+.P
+Also the type of detected frame can be defined using
+.B --orientation
+and
+.B --affine-adapt
+parameters where frames of type
+.I Disc
+(no orient., no affine),
+.I Oriented disc
+(rot. covariant, no affine),
+.I Ellipse,
+(no orient., affine covariant),
+.I Oriented ellipse,
+(rot. covariant, affine covariant),
+.P
+A
+.I Disc
+frame is specified by 3 floating point numbers
+(in order: coordinate of the center
+.I x
+and
+.I y,
+and
+.IR Sigma,
+radius of the region in the image).
+.P
+An
+.I Oriented disc
+frame is specified by 4 floating point numbers
+(in order: coordinate of the center
+.I x
+and
+.I y,
+and elements
+.IR Sigma,
+radius of the region in the image and orientation
+.IR Theta
+in the image).
+.P
+An
+.I Ellipse
+frame is specified by 5 floating point numbers
+(in order: coordinate of the center
+.I x
+and
+.I y,
+and elements
+.IR E11 ,
+.IR E21 ,
+.I  E22
+of the shape matrix which is inverse of Ellipse matrix). The shape matrix can
+be calculated as an Ellipse matrix (not its inverse) when parameter
+.I  --calc-inv-sm
+is defined.
+.P
+An
+.I Oriented ellipse
+frame is specified by 6 floating point numbers
+(in order: coordinate of the center
+.I x
+and
+.I y,
+and elements
+.IR A11 ,
+.IR A21 ,
+.IR A21 ,
+.I  A22
+of the matrix mapping the unit circle to the ellipse).
+.P
+A feature descriptor is an histogram. It is specifyied by 128 non-negative
+integer numbers.
+.P
+.B covdet
+can process multiple images and derive the names of the various output
+files by means of
+.I FILESPEC
+(see
+.BR vlfeat (7)).
+Both frames and descriptors can be saved/loaded either in ascii or binary
+format.
+.
+.TP
+Ascii format
+.
+Each descriptor is a list of 128 decimal numbers and
+occupies a line of text.  Each frame is a list of 5 numbers,
+specifying an elliptical frame, one per line of text.  The combined
+output file (with both frames and descriptors) stores a frame
+.I and
+the corresponding descriptor for each line of text.
+.
+.TP
+Binary format
+.
+The binary format is similar to the ASCII format, except
+that each frame element is stored as an IEEE double floating point
+number (eight bytes) and each descriptor element is stored as an
+unsiged integer (one byte). The data is written in little
+endian order.
+.
+.\" ------------------------------------------------------------------
+.SH EXAMPLES
+.\" ------------------------------------------------------------------
+.TP
+covdet test.pgm --peak-thresh=0.03
+Caluclates the SIFT frames and descriptors of image
+.I test.pgm
+with peak threshold equal to 0.03
+and save them back to
+.I test.sift
+in ascii format.
+.TP
+covdet test.pgm --no-descriptors
+Writes the frames to
+.I
+test.sift
+in ascii format without calculating descriptors.
+.
+.TP
+covdet test.pgm --descriptors=bin://
+writes only the frames to
+.IR test.descr.
+in binary format.
+.
+.TP
+covdet -r hessian -f ellipse --calc-inv-sm test.pgm
+detect hessian-affine frames and descriptors and stores them to
+.IR test.sift.
+file. The shape matrix is exported as its inverse (Oxford format - exported
+as the ellipse matrix).
+.
+.TP
+covdet -f dics test.pgm \-\^\-frames=my.frames -o bin:///tmp/%.sift --gss
+Computed upright sift frames and descriptors writes the frames in ascii
+format to
+.I my.frames
+and the combined frames-descriptors file in binary format to
+.IR /tmp/test.sift .
+Exports the GSS planes into set of images
+.I test_[-1..num-octaves]_[-01..03].pgm
+Where the default number of levels is three.
+.
+.\" ------------------------------------------------------------------
+.SH SEE ALSO
+.\" ------------------------------------------------------------------
+.BR vlfeat (7).
+
+D. G. Lowe.
+Distinctive image features from scale-invariant keypoints.
+.IR IJCV ,
+2(60):91-110, 2004.
+
+Mikolajczyk, K. and Schmid, C.
+Scale & Affine Invariant Interest Point Detectors
+.IR IJCV ,
+(60), 2004.

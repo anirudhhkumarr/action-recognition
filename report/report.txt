@@ -1,0 +1,44 @@
+Introduction
+Activity Recognition is a widely studied topic in Computer Vision. A great deal of work has been done in Computer Vision based Activity Recognition. Researchers have applied techniques like Optical Flow, Hidden Markov Models etc. There are multiple subproblems in Activity Recognition, some of which include tracking, group action recognition, single person action recognition, complex event detection etc. There are a lot of real life scenarios where action recognition is useful eg. providing home-based rehabilitation for people suffering fro traumatic brain injuries, detection of anomalous events in a crowded place.
+One of the basic susbproblem which we are attempting to solve is the action classification from a set of classes of human actions corresponding to different sports in Olympics.
+
+Challenges
+
+
+Approach
+Space Time Interest Points
+A video can be thought of as a 3 dimentional vector over X, Y coordinates and Time as 3rd dimension. For a small 320X240 video of length 5 seconds, this leads to a vector of 384,000 dimensions. For all practical purposes like classifiaction, this is a huge vector in itself. And we need to take into extract some features and not just raw data. Features like Optical Flow and Gradient have led to better results in the past and we intend to utilize the advantages of those approaches. These features are themselves multi-dimentional and increase the dimensionality of the video vector even further.
+We notice that not all points in this 3 dimensions carry relevant information for action recognition. Take figure 1 for instance. The black box in the frame does not carry any useful information as far as the overall action recognition is concerned. However, we have the useful information in the red box surrounding the person. To take advantage of this fact, we calculate need to Interest Points in the image and proceed to extract features from only those points which carry relevant information.
+To calculate these interest points we use a Harris 3-D corner detector over the video sequence.
+
+[put the image here]
+
+The spatio-temporal interest points of the function H are found by detecting local positive spatio-temporal maxima of H. The code was provided on the website of Ivan Laptev.
+Histogram of Flow/Histogram of Gradient
+The features that we calculate over our STIP's are Histograms of Flow and Histograms of gradient. We calculate 72 HOG and 90 HOF features on our interest points. The HOG features are calculated over 3 neighbouring x and y coordinates and 2 adjacent time frames in four orientations. This leads to 3X3X2X4 = 72 dimensional HOG features. The HOF features are calculated on 9 neighbouring points including the interest point and for each point we have 5X2 dimensional flow vector making it 90 dimensions. Thus we have 162 dimensional vectors over all STIP's in the video. The code for extracting features is provided by Ivan Laptev on his website.
+Visual Words
+The number of STIP's is still large and the high dimensionality of 162 requires us to reduce it further. We use a bag of words approach to create a histogram of frequencies over some predefined visual words. To generate the visual words we cluster the features we extracted from the training videos into a 1000 clusters. The centroids of these clusters act as visual words, each of dimension 162.
+Video Representation
+We have extracted the features for each video and we also have a list of most frequent visual words that appear in the training set videos. Now, we need to have a representation for each video in a smaller dimension. 
+For each feature in a video we find the nearest neighbour in the bag of words and increase the frequency of the visual word by 1 in the histogram. Thus we have a 1000 dimension histogram which can be thought of as a vector, for each video, on which we can perform training and classification. 
+
+Classification
+
+Dataset
+We use the Olympic Sports Dataset (http://vision.stanford.edu/Datasets/OlympicSports/ ) which contains videos of athletes practicing 16 different sports. All video sequences are obtained from YouTube and are annotated with class labels with the help of Amazon Mechanical Turk. The videos are provided in .seq format and the functions which can handle .seq videos for Matlab are provided in Piotr's Matlab toolbox. We use the toolbox to read the .seq videos. We wrote our code for coverting the videos into .avi format which can then be processed by the code which computes STIPs.
+We consider a smaller subset for our experiments and we take 3 classes which are Long Jump, High Jump and Triple Jump.
+
+Experiments
+
+
+Results
+
+Conclusion
+
+Acknowledgements
+We would like to thank Prof. Amit Mukerjee for his support and guidance throughout the project. Our discussions with him about the project we insightful and constructive.
+
+References
+
+
+
